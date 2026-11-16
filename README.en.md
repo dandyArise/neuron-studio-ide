@@ -7,7 +7,7 @@ Neuron Studio is a desktop Python IDE for Windows with a Monaco editor, live gra
 ## Install on Windows 10 or 11 (x64)
 
 1. Install [Python 3 for Windows](https://www.python.org/downloads/windows/) and enable **Add python.exe to PATH**. Open a new PowerShell window and check `python --version`.
-2. [Download the Windows x64 executable](https://github.com/dandyArise/neuron-studio/releases/latest/download/Neuron-Studio-Windows-x64.exe), move it to a folder of your choice and open it. If Windows reports a missing WebView2 runtime, install the [Microsoft Edge WebView2 Evergreen x64 runtime](https://developer.microsoft.com/microsoft-edge/webview2/) and reopen Neuron.
+2. [Download the Windows x64 executable](https://github.com/dandyArise/neuron-studio-ide/releases/latest/download/Neuron-Studio-Windows-x64.exe), move it to a folder of your choice and open it. If Windows reports a missing WebView2 runtime, install the [Microsoft Edge WebView2 Evergreen x64 runtime](https://developer.microsoft.com/microsoft-edge/webview2/) and reopen Neuron.
 3. Click **Exécuter** or press **F5** to run the built-in digit recognition demo. To try your own script, click **Nouveau**, type `print("Hello!")` and press **F5**. The console displays the message and exit code 0.
 
 ## Editing and running scripts

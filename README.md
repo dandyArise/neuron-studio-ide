@@ -7,7 +7,7 @@ Mini-IDE Python pour Windows. Le panneau de gauche affiche le rendu du programme
 ## Installer sur Windows 10 ou 11 (x64)
 
 1. Installez [Python 3 pour Windows](https://www.python.org/downloads/windows/) et cochez **Add python.exe to PATH**. Dans un nouveau PowerShell, vérifiez que `python --version` affiche Python 3.
-2. [Téléchargez Neuron Studio pour Windows x64](https://github.com/dandyArise/neuron-studio/releases/latest/download/Neuron-Studio-Windows-x64.exe), placez le fichier dans le dossier de votre choix et double-cliquez dessus. Cette version portable utilise le [runtime Microsoft Edge WebView2](https://developer.microsoft.com/microsoft-edge/webview2/). Si Windows signale qu’il manque, installez le runtime Evergreen x64 puis relancez Neuron.
+2. [Téléchargez Neuron Studio pour Windows x64](https://github.com/dandyArise/neuron-studio-ide/releases/latest/download/Neuron-Studio-Windows-x64.exe), placez le fichier dans le dossier de votre choix et double-cliquez dessus. Cette version portable utilise le [runtime Microsoft Edge WebView2](https://developer.microsoft.com/microsoft-edge/webview2/). Si Windows signale qu’il manque, installez le runtime Evergreen x64 puis relancez Neuron.
 3. Cliquez sur **Exécuter** pour essayer le script fourni. Pour tester votre propre code, cliquez sur **Nouveau**, tapez `print("Bonjour !")`, puis appuyez sur **F5**. La console doit afficher le message et un code de sortie 0.
 
 La version distribuée cible Windows x64. Le backend utilise les API Windows pour les processus Python et le stockage des identifiants. L’assistant de code est facultatif.
