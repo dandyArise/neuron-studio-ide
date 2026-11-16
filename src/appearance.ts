@@ -9,6 +9,11 @@ const defaults: Appearance = {theme:'neuron',library:[],selected:0,font:'Cascadi
 const key = 'neuron.appearance.v1'
 
 const palettes = {
+  atelier: {
+    surface:'#14130f',panel:'#1b1a15',raised:'#2a2822',edge:'#3a372e',text:'#ede6d8',
+    muted:'#aaa291',accent:'#e8a66a',success:'#9bc48a',selection:'#514133',
+    keyword:'#e8a66a',string:'#9bc48a',number:'#e8c98a',comment:'#a29a87',red:'#e5786d',blue:'#a6c6d1',
+  },
   neuron: {
     surface:'#121311',panel:'#1a1c18',raised:'#262923',edge:'#43473c',text:'#e7e4da',
     muted:'#b6b8ac',accent:'#e2ad77',success:'#b6d49a',selection:'#45523e',

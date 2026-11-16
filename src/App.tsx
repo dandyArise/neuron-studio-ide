@@ -19,6 +19,7 @@ import {applyAppearance,loadAppearance} from './appearance'
 import Assistant,{type Crash} from './Assistant'
 import {installCompletion} from './completion'
 import DrawingView,{parseDrawing,type Drawing} from './Drawing'
+import CodeDiff from './CodeDiff'
 
 self.MonacoEnvironment = {getWorker: () => new EditorWorker()}
 type Output = {kind:'stdout'|'stderr',data:string}|{kind:'exit',code:number|null,stopped:boolean}
@@ -33,6 +34,9 @@ function App(){
   const editor=useRef<monaco.editor.IStandaloneCodeEditor|null>(null),term=useRef<Terminal|null>(null)
   const baseline=useRef(demo),active=useRef(false),locked=useRef(false)
   const [auto,setAuto]=useState(false)
+  const [fileReview,setFileReview]=useState<{
+    action:'new'|'open'|'examples', proposed?:string, source:string, before:string, after:string, apply?:()=>void
+  }|null>(null)
   const autoEnabled=useRef(false), pendingRun=useRef(false)
   const timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined)
   const actions=useRef({run:()=>{},save:()=>{},open:()=>{},newFile:()=>{}})
@@ -84,6 +88,13 @@ function App(){
     }):null
     return ()=>{clearTimeout(timer.current);completion.dispose();void close?.then(fn=>fn());observer.disconnect();window.removeEventListener('keydown',keys,true);ed.dispose();t.dispose()}
   },[])
+  const [liveOpen,setLiveOpen]=useState(()=>localStorage.getItem('neuron.layout.live')==='true')
+  const [dock,setDock]=useState(()=>{
+    const saved=localStorage.getItem('neuron.layout.chat')
+    return saved==='left'||saved==='right'?saved:'bottom'
+  })
+  useEffect(()=>{localStorage.setItem('neuron.layout.live',String(liveOpen))},[liveOpen])
+  useEffect(()=>{localStorage.setItem('neuron.layout.chat',dock)},[dock])
   const [assistant,setAssistant]=useState(false),[consoleOpen,setConsoleOpen]=useState(true)
   const [assistantStarted,startAssistant]=useState(false)
   const [crash,setCrash]=useState<Crash|null>(null),[explain,setExplain]=useState<Crash|null>(null)
@@ -113,10 +124,15 @@ function App(){
     if(outputHost.current?.clientWidth)fitRef.current?.fit()
   },[appearance])
   function failure(e:unknown){status('Erreur');term.current?.writeln('\r\n\x1b[31m'+String(e)+'\x1b[0m')}
-  async function file(action:'new'|'open'|'examples'|'save', proposedCode?:string){
+  async function file(action:'new'|'open'|'examples'|'save', proposedCode?:string, approvedSource?:string){
     const save=action==='save'
     if(locked.current||active.current||!editor.current)return
-    if(!save && editor.current.getValue()!==baseline.current && !confirm('Abandonner les modifications du document actuel ?'))return
+    const source=editor.current.getValue()
+    if(action!=='save' && (proposedCode!==undefined || source!==baseline.current) && approvedSource!==source){
+      setFileReview({action,proposed:proposedCode,source,before:proposedCode===undefined?baseline.current:source,after:proposedCode??source})
+      return
+    }
+    setFileReview(null)
     locked.current=true;setBusy(true)
     const ed=editor.current,content=ed.getValue()
     try{
@@ -140,6 +156,7 @@ function App(){
     clearTimeout(timer.current);pendingRun.current=false
     active.current=true;setRunning(true);setFrame(null);setDrawing(null);setSamples([]);status('En cours')
     const terminal=term.current!;terminal.reset()
+    const started=performance.now()
     setCrash(null)
     const source=editor.current.getValue(),version=editor.current.getModel()!.getVersionId()
     let stderr=''
@@ -156,7 +173,9 @@ function App(){
         output.finish()
         const label=e.stopped?'Arrêté':('Code de sortie '+(e.code??'inconnu'))
         if(!e.stopped&&e.code!==0)setCrash({source,version,diagnostic:stderr.trim()?stderr+'\n'+label:label})
-        status(label);terminal.writeln('\r\n\x1b[90m'+label+'\x1b[0m')
+        status(label)
+        const duration=((performance.now()-started)/1000).toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})
+        terminal.writeln(!e.stopped&&e.code===0?'\r\n\x1b[32m✓ Terminé en '+duration+' s\x1b[0m':'\r\n\x1b[90m'+label+'\x1b[0m')
         active.current=false;setRunning(false)
         if(pendingRun.current && autoEnabled.current)actions.current.run()
       }else if(e.kind==='stdout')output.push(e.data)
@@ -166,24 +185,47 @@ function App(){
   }
   async function stop(){toggleAuto(false);if(!active.current)return;status('Arrêt demandé');try{await invoke('stop')}catch(e){failure(e)}}
   actions.current={run,save:()=>file('save'),open:()=>file('open'),newFile:()=>file('new')}
-  return <main><header><div className="brand"><span className="brandmark">N</span>Neuron<span className="studio">Studio</span></div><nav>
+  return <main><header className="studio-toolbar"><div className="brand"><span className="brandmark">N</span>Neuron<span className="studio">Studio</span></div><nav>
 
     <button title="Nouveau fichier Python (Ctrl+N)" disabled={running||busy} onClick={()=>file('new')}>Nouveau</button>
-    <button disabled={running||busy} onClick={()=>file('open')}>Ouvrir</button><button disabled={running||busy} onClick={()=>file('examples')}>Mes exemples</button><button disabled={running||busy} onClick={()=>file('save')}>Enregistrer</button><i/>
-    <button disabled={busy} aria-pressed={auto} title="Relancer après 700 ms sans frappe" onClick={()=>toggleAuto(!autoEnabled.current)}>Run auto {auto?'✓':''}</button>
-    <button disabled={!running&&!auto} onClick={stop}>■ Stop</button><button className="execute" disabled={running||busy} onClick={run}>▶ Exécuter</button></nav></header>
-    <div className={'workspace'+(consoleOpen?'':' console-closed')}><section className="visual"><div className="strip"><strong>Rendu live</strong><small>{(drawing||frame)?(running?'● EN DIRECT':'DERNIÈRE IMAGE'):'EN ATTENTE'}</small></div>{frame?<Live frame={frame}/>:<DrawingView drawing={drawing}/>} 
+    <button disabled={running||busy} onClick={()=>file('open')}>Ouvrir</button><button disabled={running||busy} onClick={()=>file('save')}>Enregistrer</button><button disabled={running||busy} onClick={()=>file('examples')}>Mes exemples ▾</button>
+    <button aria-pressed={liveOpen} title="Afficher ou masquer le rendu live" onClick={()=>setLiveOpen(!liveOpen)}>Live</button>
+    <button className="auto-switch" role="switch" aria-checked={auto} disabled={busy} title="Relancer après 700 ms sans frappe" onClick={()=>toggleAuto(!autoEnabled.current)}>Run auto <span aria-hidden="true"/></button>
+    {running?<button className="stop-run" onClick={stop}>■ Stop</button>:<button className="execute" disabled={busy} onClick={run}>▶ Exécuter</button>}</nav></header>
+    <div className={'workspace'+(consoleOpen?'':' console-closed')+(liveOpen?'':' live-closed')}><section className="visual"><div className="strip"><strong>Rendu live</strong><small>{(drawing||frame)?(running?'● EN DIRECT':'DERNIÈRE IMAGE'):'EN ATTENTE'}</small></div>{frame?<Live frame={frame}/>:<DrawingView drawing={drawing}/>} 
       {samples.length>0 && <div className="samples" aria-label="Derniers échantillons">{samples.map((sample,index)=><svg key={index} viewBox="0 0 5 7" role="img" aria-label={'Chiffre '+sample.label}><title>{'Époque '+sample.epoch+' · chiffre '+sample.label}</title>{sample.pixels.map((v,i)=><rect key={i} x={i%5} y={Math.floor(i/5)} width=".88" height=".88" fill="currentColor" opacity={v}/>)}</svg>)}</div>}
     </section><Divider/><Divider horizontal/>
-    <div className="tools"><section className="code"><div className="strip"><strong><em>Py</em> {name}{dirty?' •':''}</strong><small>PYTHON</small></div><div ref={sourceHost} className="editor"/>
-    {assistant && <Divider horizontal assistant/>}
-    {assistantStarted && <Assistant runCurrent={run} explain={explain} consume={()=>setExplain(null)} reportBusy={setAsking} attachment={attachment} removeAttachment={item=>setAttachment(current=>current===item?null:current)} config={config} visible={assistant} editorRef={editor} close={()=>setAssistant(false)} beforeEdit={()=>toggleAuto(false)} runDisabled={running||busy} runNew={code=>void file('new',code)}/>}</section>
-    <section className="output"><div className="strip"><strong><em>›_</em> Console</strong><span>
+    <div className="tools"><section className="code" data-dock={assistant?dock:undefined}><div className="strip"><strong><em>Py</em> {name}{dirty?' •':''}</strong><small>PYTHON</small></div><div ref={sourceHost} className="editor"/>
+    {fileReview&&<section className="inline-file-review" aria-label="Comparaison du code">
+      <div className="review-controls"><strong>{fileReview.proposed===undefined?'Modifications non enregistrées':'Script actuel → proposition de l’assistant'}</strong>
+        <button autoFocus onClick={()=>{setFileReview(null);editor.current?.focus()}}>Revenir au code</button>
+        <button className="execute" disabled={busy||running} onClick={()=>{if(fileReview.apply){setFileReview(null);fileReview.apply()}else void file(fileReview.action,fileReview.proposed,fileReview.source)}}>
+          {fileReview.apply?<><span aria-hidden="true">⇇</span> Tout appliquer</>:fileReview.proposed!==undefined?'Ouvrir la proposition et exécuter':fileReview.action==='new'?'Abandonner et créer':'Abandonner et ouvrir…'}
+        </button></div>
+      <CodeDiff before={fileReview.before} after={fileReview.after} onApply={fileReview.apply&&!busy&&!running?value=>{
+        const ed=editor.current,doc=ed?.getModel()
+        if(!ed||!doc||doc.getValue()!==fileReview.before){setFileReview(null);status('Script modifié · relancez la comparaison');return}
+        toggleAuto(false)
+        ed.pushUndoStop()
+        if(!ed.executeEdits('assistant-hunk',[{range:doc.getFullModelRange(),text:value}]))return
+        ed.pushUndoStop()
+        const before=doc.getValue(),version=doc.getVersionId()
+        if(before.replace(/\r\n/g,'\n')===fileReview.after.replace(/\r\n/g,'\n')){setFileReview(null);ed.focus();return}
+        setFileReview({...fileReview,before,source:before,apply:()=>{
+          if(doc.getVersionId()!==version){status('Script modifié · relancez la comparaison');return}
+          toggleAuto(false)
+          ed.pushUndoStop();ed.executeEdits('assistant',[{range:doc.getFullModelRange(),text:fileReview.after}]);ed.pushUndoStop();ed.focus()
+        }})
+      }:undefined}/>
+    </section>}
+    {assistant && <Divider key={dock==='bottom'?'bottom':'side'} horizontal={dock==='bottom'} assistant/>}
+    {assistantStarted && <Assistant compare={(before,after,apply)=>setFileReview({action:'new',source:before,proposed:after,before,after,apply})} dock={dock} setDock={setDock} chooseModel={id=>{const next={...config,model:id,effort:''};localStorage.setItem('neuron.llm',JSON.stringify(next));setConfig(next)}} explain={explain} consume={()=>setExplain(null)} reportBusy={setAsking} attachment={attachment} removeAttachment={item=>setAttachment(current=>current===item?null:current)} config={config} visible={assistant} editorRef={editor} close={()=>setAssistant(false)} beforeEdit={()=>toggleAuto(false)} runDisabled={running||busy}/>}</section>
+    <section className="output"><div className="strip"><strong>Console</strong><span>
       {crash&&<button disabled={asking||!!explain} onClick={()=>{startAssistant(true);setAssistant(true);setExplain(crash)}}>Expliquer l’erreur</button>}{' '}
       <button onClick={attachConsole}>Joindre à la question</button>{' '}<button type="button" title="Effacer la sortie et son historique" onClick={()=>{term.current?.write('\x1bc');setCrash(null)}}>Vider</button></span></div><div ref={outputHost} className="terminal"/></section></div></div>
-    <footer><div className="panel-buttons"><button aria-pressed={assistant} onClick={()=>{startAssistant(true);setAssistant(!assistant)}}>🤖 Assistant</button>
-      <button aria-pressed={consoleOpen} onClick={()=>setConsoleOpen(!consoleOpen)}>›_ Console</button>
-      <button title="Préférences (Ctrl+,)" onClick={()=>setSection('appearance')}>⚙ Préférences</button>
+    <footer><div className="panel-buttons"><button aria-pressed={assistant} onClick={()=>{startAssistant(true);setAssistant(!assistant)}}>Assistant</button>
+      <button aria-pressed={consoleOpen} onClick={()=>setConsoleOpen(!consoleOpen)}>Console</button>
+      <button title="Préférences (Ctrl+,)" onClick={()=>setSection('appearance')}>Préférences</button>
       <span><b className={running?'on':''}/> {state}</span></div><span>Ln / Col {position}　 ·　 UTF-8　 ·　 Python</span></footer>
     {section&&<Preferences initial={section} appearance={appearance} change={setAppearance} config={config} save={setConfig} close={()=>setSection(null)}/>}</main>
 }

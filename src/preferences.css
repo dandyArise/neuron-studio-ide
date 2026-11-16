@@ -15,3 +15,8 @@
 .preferences .theme-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr))}
 .python-preview{margin:16px 0 0;border:1px solid var(--edge);border-radius:6px;overflow:hidden}
 .python-preview figcaption{background:var(--raised);padding:6px 12px;color:var(--muted)}
+.preferences .model-list{height:auto;margin-bottom:10px}.model-list option{padding:4px 8px}
+.assistant-heading>div{min-width:0}.model-picker-link{max-width:clamp(130px,25vw,360px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.preferences .model-controls{align-items:end}.preferences .model-controls select{margin:0}
+.local-address{display:flex;align-items:center;background:var(--surface);border:1px solid var(--edge);border-radius:5px;padding-left:8px;font-family:var(--code-font)}
+.preferences .local-address input{border:0;width:9ch}.prefs-content>label{margin:12px 0}

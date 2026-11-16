@@ -83,13 +83,13 @@ fn loaded_model(models: &Value) -> Option<&str> {
         .find_map(|entry| entry["loaded_instances"].as_array()?.first()?["id"].as_str())
 }
 
-async fn local_json(request: RequestBuilder, token: &str) -> Result<Value, String> {
+async fn local_response(request: RequestBuilder, token: &str) -> Result<reqwest::Response, String> {
     let request = if token.is_empty() {
         request
     } else {
         request.bearer_auth(token)
     };
-    let mut response = request.send().await.map_err(|e| if e.is_timeout() {
+    let response = request.send().await.map_err(|e| if e.is_timeout() {
         "LM Studio n’a pas répondu à temps.".to_string()
     } else { "Connexion impossible. Vérifiez le port et démarrez le serveur dans LM Studio > Developer.".into() })?;
     let status = response.status();
@@ -99,6 +99,10 @@ async fn local_json(request: RequestBuilder, token: &str) -> Result<Value, Strin
     if !status.is_success() {
         return Err(format!("LM Studio a répondu HTTP {}. Vérifiez le modèle, le contexte et le journal du serveur.", status.as_u16()));
     }
+    Ok(response)
+}
+
+async fn read_json(mut response: reqwest::Response) -> Result<Value, String> {
     let mut bytes = Vec::new();
     while let Some(chunk) = response
         .chunk()
@@ -114,42 +118,106 @@ async fn local_json(request: RequestBuilder, token: &str) -> Result<Value, Strin
         .map_err(|_| "Le serveur local a renvoyé une réponse JSON illisible.".into())
 }
 
+fn local_client() -> Result<Client,String> {
+    Client::builder().no_proxy().redirect(Policy::none()).timeout(TIMEOUT)
+        .connect_timeout(Duration::from_secs(4)).build().map_err(|e|e.to_string())
+}
+
+fn local_token(token: Option<String>) -> Result<String,String> {
+    if let Some(value)=token.filter(|v|!v.is_empty()){return Ok(value)}
+    Ok(crate::credentials::stored_token()?.or_else(||env::var("LM_API_TOKEN").ok()).unwrap_or_default())
+}
+
+#[tauri::command]
+pub async fn assistant_models(port:u16, token:Option<String>) -> Result<Vec<Value>,String> {
+    let request=local_client()?.get(format!("http://127.0.0.1:{port}/api/v1/models")).timeout(Duration::from_secs(8));
+    let response=read_json(local_response(request,&local_token(token)?).await?).await?;
+    let list=response["models"].as_array().ok_or("Liste des modèles LM Studio illisible.")?;
+    let mut models=Vec::new();
+    for model in list.iter().filter(|m|m["type"]=="llm") {
+        let ids:Vec<_>=model["loaded_instances"].as_array().into_iter().flatten().filter_map(|v|v["id"].as_str()).collect();
+        let loaded=!ids.is_empty();
+        for id in if loaded {ids} else {model["key"].as_str().into_iter().collect()} {
+            models.push(json!({"id":id,"loaded":loaded,"options":model["capabilities"]["reasoning"]["allowed_options"].as_array().cloned().unwrap_or_default()}));
+        }
+    }
+    Ok(models)
+}
+
 async fn lmstudio(
     port: u16,
     model: String,
     token: String,
     messages: Vec<Value>,
+    effort: Option<String>,
+    events: Option<tauri::ipc::Channel<String>>,
 ) -> Result<String, String> {
     if port == 0 {
         return Err("Choisissez un port entre 1 et 65535.".into());
     }
-    let client = Client::builder()
-        .no_proxy()
-        .redirect(Policy::none())
-        .timeout(TIMEOUT)
-        .connect_timeout(Duration::from_secs(4))
-        .build()
-        .map_err(|e| e.to_string())?;
+    let client = local_client()?;
     let base = format!("http://127.0.0.1:{port}");
     let model = if model.trim().is_empty() {
-        let models = local_json(client.get(format!("{base}/api/v1/models")), &token).await?;
+        let models = read_json(local_response(client.get(format!("{base}/api/v1/models")), &token).await?).await?;
         loaded_model(&models).ok_or("Aucun modèle de conversation chargé. Chargez un LLM dans LM Studio ou saisissez son identifiant.")?.to_owned()
     } else {
         model
     };
-    let body = json!({"model":model, "stream":false, "messages":messages});
-    let response = local_json(
+    let mut body = json!({"model":model, "stream":events.is_some(), "messages":messages});
+    if let Some(level)=effort.filter(|s|!s.is_empty()){
+        if !matches!(level.as_str(),"off"|"on"|"low"|"medium"|"high"|"xhigh"){return Err("Effort de raisonnement invalide.".into())}
+        body["reasoning_effort"]=json!(level);
+    }
+    let response = local_response(
         client
             .post(format!("{base}/v1/chat/completions"))
             .json(&body),
         &token,
     )
     .await?;
+    if let Some(channel) = events {
+        if !response.headers().get("content-type").and_then(|v|v.to_str().ok()).unwrap_or("").starts_with("application/json") {
+            return stream_text(response, channel).await;
+        }
+    }
+    let response = read_json(response).await?;
     response["choices"][0]["message"]["content"]
         .as_str()
         .filter(|s| !s.trim().is_empty())
         .map(str::to_owned)
         .ok_or_else(|| "Le modèle n’a renvoyé aucun texte.".into())
+}
+
+async fn stream_text(mut response: reqwest::Response, channel: tauri::ipc::Channel<String>) -> Result<String,String> {
+    let mut answer=String::new();
+    let mut pending=Vec::new();
+    let mut total=0;
+    while let Some(chunk)=response.chunk().await.map_err(|_|"Flux LM Studio interrompu.")? {
+        total+=chunk.len();
+        if total>16*1024*1024 {return Err("Réponse LM Studio trop volumineuse.".into())}
+        pending.extend_from_slice(&chunk);
+        let mut consumed=0;
+        for line in pending.split_inclusive(|b|*b==b'\n') {
+            if !line.ends_with(b"\n"){break}
+            consumed+=line.len();
+            let line=std::str::from_utf8(line).map_err(|_|"Flux LM Studio illisible.")?;
+            let Some(data)=line.strip_prefix("data:") else {continue};
+            let data=data.trim();
+            if data=="[DONE]" {
+                if answer.trim().is_empty(){return Err("Le modèle n’a renvoyé aucun texte.".into())}
+                return Ok(answer)
+            }
+            let event:Value=serde_json::from_str(data).map_err(|_|"Événement LM Studio illisible.")?;
+            if event.get("error").is_some(){return Err("LM Studio a interrompu la génération.".into())}
+            if let Some(text)=event["choices"][0]["delta"]["content"].as_str().filter(|s|!s.is_empty()){
+                if answer.len()+text.len()>4_194_304{return Err("Réponse LM Studio trop volumineuse.".into())}
+                answer.push_str(text);
+                channel.send(text.to_owned()).map_err(|_|"Panneau de discussion fermé.")?;
+            }
+        }
+        pending.drain(..consumed);
+    }
+    Err("Flux LM Studio interrompu avant la fin de la réponse.".into())
 }
 
 fn codex_executable() -> Result<PathBuf, String> {
@@ -287,6 +355,14 @@ fn codex(model: String, prompt: String) -> Result<String, String> {
 
 #[tauri::command]
 pub async fn assistant_ask(
+    provider: String, question: String, context: String, model: String, port: u16,
+    token: Option<String>, history: Option<Vec<Turn>>, events: tauri::ipc::Channel<String>,
+    effort: Option<String>,
+) -> Result<String,String> {
+    ask(provider, question, context, model, port, token, history, effort, Some(events)).await
+}
+
+async fn ask(
     provider: String,
     question: String,
     context: String,
@@ -294,6 +370,8 @@ pub async fn assistant_ask(
     port: u16,
     token: Option<String>,
     history: Option<Vec<Turn>>,
+    effort: Option<String>,
+    events: Option<tauri::ipc::Channel<String>>,
 ) -> Result<String, String> {
     if question.trim().is_empty() {
         return Err("Saisissez une question.".into());
@@ -308,13 +386,7 @@ pub async fn assistant_ask(
     let messages = conversation(&history, &question, &context);
     match provider.as_str() {
         "lmstudio" => {
-            let token = match token.filter(|s| !s.trim().is_empty()) {
-                Some(token) => token,
-                None => crate::credentials::stored_token()?
-                    .or_else(|| env::var("LM_API_TOKEN").ok())
-                    .unwrap_or_default(),
-            };
-            lmstudio(port, model, token, messages).await
+            lmstudio(port, model, local_token(token)?, messages, effort, events).await
         }
         "codex" => tauri::async_runtime::spawn_blocking(move || {
             let transcript = serde_json::to_string(&messages[1..]).map_err(|e| e.to_string())?;
@@ -372,7 +444,7 @@ mod tests {
                 write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",reply.len(),reply).unwrap();
             }
         });
-        let actual = tauri::async_runtime::block_on(assistant_ask(
+        let actual = tauri::async_runtime::block_on(ask(
             "lmstudio".into(),
             "Et multiplié par deux ?".into(),
             String::new(),
@@ -384,6 +456,8 @@ mod tests {
                 context: "return 1234".into(),
                 answer: "Elle renvoie 1234.".into(),
             }]),
+            None,
+            None,
         ))
         .unwrap();
         assert_eq!(actual, "Réponse de test");
@@ -395,7 +469,7 @@ mod tests {
     fn lmstudio_live_followup() {
         tauri::async_runtime::block_on(async {
             let ask = |q: &str, h| {
-                assistant_ask(
+                ask(
                     "lmstudio".into(),
                     q.into(),
                     String::new(),
@@ -403,6 +477,8 @@ mod tests {
                     1234,
                     None,
                     h,
+                    None,
+                    None,
                 )
             };
             let question = "Calcule 324 + 19. Réponds uniquement par le nombre.";
@@ -447,7 +523,7 @@ mod tests {
             context: String::new(),
             answer: "4307".into(),
         }];
-        let actual = tauri::async_runtime::block_on(assistant_ask(
+        let actual = tauri::async_runtime::block_on(ask(
             "codex".into(),
             "Réponds uniquement avec le nombre exact de ta réponse précédente.".into(),
             String::new(),
@@ -455,6 +531,8 @@ mod tests {
             1234,
             None,
             Some(history),
+            None,
+            None,
         ))
         .unwrap();
         assert!(actual.contains("4307"));

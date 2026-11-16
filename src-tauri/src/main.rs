@@ -7,15 +7,24 @@ mod job;
 mod runner;
 use tauri::Manager;
 
+#[tauri::command]
+fn download_update() -> Result<(), String> {
+    std::process::Command::new("explorer.exe")
+        .arg("https://github.com/dandyArise/neuron-studio-ide/releases/latest/download/Neuron-Studio-Windows-x64.exe")
+        .spawn().map(|_| ()).map_err(|e| e.to_string())
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(files::Document::default())
         .manage(analysis::Analyzer::default())
         .manage(runner::Runs::default())
         .invoke_handler(tauri::generate_handler![
+            download_update,
             files::new_file,
             analysis::analyze,
             assistant::assistant_ask,
+            assistant::assistant_models,
             credentials::assistant_token_status,
             credentials::assistant_save_token,
             files::open_file,

@@ -1,7 +1,7 @@
 import {useLayoutEffect, useRef, useState} from 'react'
 
 export default function Divider({horizontal=false,assistant=false}:{horizontal?:boolean,assistant?:boolean}) {
-  const property = assistant ? '--code-height' : horizontal ? '--live-height' : '--left-width'
+  const property = assistant ? (horizontal?'--code-height':'--chat-split') : horizontal ? '--live-height' : '--left-width'
   const key = 'neuron.layout.' + property.slice(2)
   const handle = useRef<HTMLDivElement>(null)
   const [percent, setPercent] = useState(() => {

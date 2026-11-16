@@ -29,3 +29,42 @@ html[data-appearance] .message-row textarea{background:transparent;border:0;outl
 html[data-appearance] .message-row .send-message{border:0;border-radius:8px;width:32px;height:32px;padding:0;font-size:21px;background:var(--accent);color:var(--surface)}
 .console-chip{width:fit-content;max-width:100%;align-items:flex-start;background:var(--raised);color:var(--text);border-radius:6px;margin:2px 0 5px;padding:1px 2px 1px 8px;font-size:12px}
 .console-chip details{min-width:0;padding:4px 0}.console-chip pre{max-height:120px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+.assistant-heading .connection{font:11px Consolas,monospace;color:var(--muted);letter-spacing:0}
+.assistant-heading .connection.online{color:var(--success)}
+.assistant-body .chat-log article{border:0;padding:6px 0 16px}
+.user-bubble{background:var(--raised);margin:0 0 14px auto;padding:8px 12px;border-radius:12px 12px 3px 12px;width:fit-content;max-width:88%}
+.chat-log .user-bubble p{margin:0}.user-bubble details{margin-top:6px;font:12px var(--code-font);color:var(--accent)}
+.user-bubble pre{max-height:9em;overflow:auto}
+.assistant-body .reply-label{display:block;text-transform:uppercase;letter-spacing:.13em;font:600 11px "Segoe UI",sans-serif;color:var(--muted)}
+.reply-code{background:var(--surface);border:1px solid var(--edge);border-radius:8px;overflow:hidden;margin:8px 0}
+.code-actions{display:flex;gap:5px;align-items:center;flex-wrap:wrap;padding:5px 8px;border-bottom:1px solid var(--edge)}
+.code-actions span{margin-right:auto;color:var(--muted);font-size:12px}
+.code-actions button{font-size:11px;padding:2px 6px}.chat-log .reply-code pre{padding:10px;margin:0}
+.assistant-body .composer{margin-top:auto;display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+.composer .message-row{display:contents}.composer .message-row textarea{order:-1;flex-basis:100%;width:100%}
+.composer .console-chip{margin:0}.assistant-body .composer .chat-effort{width:auto;max-width:100%;border-radius:14px;padding:3px 7px;font-size:12px}
+.composer .send-message{margin-left:auto}
+.chat-model{field-sizing:content;max-width:min(32vw,240px);min-width:0;text-overflow:ellipsis;font:12px "Segoe UI",sans-serif;color:var(--muted);background:transparent;border:1px solid transparent;border-radius:4px;padding:2px 3px;cursor:pointer}
+.chat-model:is(:hover,:focus-visible){color:var(--text);border-color:var(--edge)}.chat-model option{background:var(--panel);color:var(--text)}
+.dock-options{display:inline-flex;gap:6px;flex:none}
+html[data-appearance] .dock-options button{width:28px;height:28px;padding:0;display:grid;place-items:center;border:0;border-radius:5px;color:var(--muted);background:transparent}
+html[data-appearance] .dock-options button:is(:hover,:focus-visible){background:#2A2822;color:#EDE6D8}
+html[data-appearance] .dock-options button[aria-pressed=true]{background:#2A2822;color:#E8A66A}
+.assistant-pane .assistant-heading{flex-wrap:wrap;height:auto;min-height:39px}
+.assistant-pane .assistant-heading>div{flex:1;flex-wrap:wrap}
+.side-diff{flex:1;min-height:0;min-width:0}
+.diff-columns{display:grid;grid-template-columns:1fr 1fr;color:var(--muted);font-size:12px}
+.diff-columns span{padding:4px 12px;border-top:1px solid var(--edge)}
+.assistant-pane>.assistant-body{flex:1;overflow:hidden}
+.assistant-body>.chat-log{flex:1;min-height:0;overflow:auto;scrollbar-gutter:stable}
+.assistant-body>.chat-log article,.assistant-body>.composer,.assistant-body>p[role=alert]{width:min(100%,700px);margin-inline:auto}
+.assistant-body>.composer{flex:none;max-height:55%;overflow:auto}
+.assistant-body>.chat-log{background:linear-gradient(var(--panel),transparent) bottom/100% 18px local no-repeat,linear-gradient(transparent,var(--edge)) bottom/100% 10px scroll no-repeat}
+.chat-markdown{line-height:1.55;overflow-wrap:anywhere}
+.assistant-body .chat-markdown p{white-space:normal}
+.chat-markdown ol>li::marker{color:var(--accent);font:bold 1.2em Georgia,serif}
+.chat-markdown :is(h2,h3,h4){line-height:1.25;margin:1em 0 .4em}
+.chat-markdown .code-actions{min-height:26px;padding:1px 8px;gap:4px}
+html[data-appearance] .chat-markdown .code-actions button{background:transparent;color:var(--text);border:1px solid var(--edge);font:12px "Segoe UI",sans-serif;padding:1px 6px}
+html[data-appearance] .chat-markdown .code-actions button[title^="Ouvrir"]{color:var(--success)}
+.chat-log .chat-markdown .reply-code pre{font-family:var(--code-font),monospace;line-height:1.45;overflow:auto;white-space:pre;padding:6px 10px;background:var(--surface)}
