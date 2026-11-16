@@ -1,0 +1,11 @@
+node_modules/
+/examples/
+.repolens/
+/*.exe
+__pycache__/
+.env
+.env.*
+dist/
+src-tauri/target/
+src-tauri/gen/
+

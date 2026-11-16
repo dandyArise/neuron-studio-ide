@@ -1,0 +1,17 @@
+.preferences{padding:0;width:min(620px,93vw);max-height:88vh;border:1px solid #484a40;border-radius:12px;color:inherit;background:#1a1b18;box-shadow:0 18px 70px #0009}
+.preferences::backdrop{background:#0809099e}
+:root{--doc-font-size:var(--code-size,14px)}
+.preferences :is(.prefs-title,.prefs-nav,.prefs-actions){border-color:var(--edge,#41433a)}
+.preferences .prefs-preview{background:var(--surface);color:var(--text)}.prefs-preview b{color:var(--keyword)}
+.prefs-title,.prefs-actions,.prefs-row,.theme-choices{display:flex;align-items:center;gap:12px}
+.prefs-title,.prefs-actions{padding:14px 20px;justify-content:space-between;border-bottom:1px solid #41433a}
+.prefs-title h2{font-size:21px;margin:0}.prefs-layout{display:grid;grid-template-columns:145px minmax(0,1fr)}
+.prefs-nav{padding:16px 10px;border-right:1px solid #41433a;display:flex;flex-direction:column;gap:5px}.prefs-nav button{text-align:left}
+.prefs-content{padding:20px;min-height:260px;font:14px "Segoe UI",sans-serif}.prefs-content h3{margin:0 0 18px;font-size:16px}.prefs-content label,.prefs-content fieldset{display:grid;gap:6px}.prefs-content fieldset{border:0;padding:0;margin:0}.prefs-content legend{margin-bottom:6px}.prefs-row{align-items:start;margin:15px 0}.prefs-row label{flex:1;min-width:0}
+.prefs-content select,.prefs-content input{width:100%;color:inherit;background:#121411;border:1px solid #515348;border-radius:5px;padding:7px;font:inherit}
+.theme-choices{gap:6px}.theme-choices button{flex:1;padding:5px}.theme-preview{display:flex;gap:3px;align-items:center;height:20px;padding:0 7px;border-radius:3px;margin-bottom:4px}.theme-preview i{width:25%;height:3px}.prefs-preview{padding:12px 16px;border-radius:6px;overflow:auto;line-height:1.5;background:#11130f}.prefs-actions{justify-content:flex-end;border-bottom:none;border-top:1px solid #41433a}
+
+.preferences{width:min(800px,95vw)}
+.preferences .theme-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr))}
+.python-preview{margin:16px 0 0;border:1px solid var(--edge);border-radius:6px;overflow:hidden}
+.python-preview figcaption{background:var(--raised);padding:6px 12px;color:var(--muted)}

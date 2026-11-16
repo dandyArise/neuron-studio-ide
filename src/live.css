@@ -1,0 +1,16 @@
+.neuron-live {color:#e4e2d9; padding:clamp(13px,2vw,30px); background:radial-gradient(ellipse at 10% 0%,#211d16 0%,#131412 62%);min-width:0;box-sizing:border-box}
+.neuron-live header {display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 18px;flex-wrap:wrap}
+.neuron-live h2 {font:normal clamp(27px,3.3vw,52px)/1.09 Georgia,serif;letter-spacing:-.05em;margin:0;color:#efe9de}
+.neuron-live h2 em {color:#e7ae72;font-weight:normal}
+.neuron-live .nl-tag {font:9px/1.5 Consolas,monospace;letter-spacing:.12em;color:#bfaa89;border:1px solid #564934;border-radius:20px;padding:3px 9px;white-space:nowrap}
+.neuron-live .nl-board {background:#111310;border:1px solid #36372e;border-radius:9px;padding:12px 13px 10px}
+.neuron-live .nl-stats,.neuron-live .nl-foot {display:flex;align-items:center;gap:20px;font:11px/1.5 Consolas,monospace;color:#aaa99c}
+.neuron-live .nl-stats {justify-content:space-between}
+.neuron-live .nl-stats b {color:#d7d4c3;font-weight:500}
+.neuron-live .nl-stats span:last-child b {color:#a2cf92}
+.neuron-live .nl-graph {display:block;width:100%;max-height:clamp(150px,29vh,340px);margin:8px auto}
+.neuron-live .nl-graph text {font:9px Consolas,monospace;fill:#b0b1a3}
+.neuron-live .nl-graph .nl-digit {font-size:8px}
+.neuron-live .nl-foot {gap:7px;font-size:10px;border-top:1px solid #2d3028;padding-top:8px}
+.neuron-live .nl-foot i {width:6px;height:6px;background:#858071;border-radius:50%}
+.neuron-live .nl-foot .nl-lit {background:#9cca8a}

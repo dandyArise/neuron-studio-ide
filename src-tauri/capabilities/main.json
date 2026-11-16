@@ -1,0 +1,5 @@
+{
+  "identifier": "editor",
+  "windows": ["main"],
+  "permissions": ["allow-new-file", "allow-open-file", "allow-save-file", "allow-run", "allow-stop", "allow-analyze", "allow-assistant-ask", "allow-assistant-token-status", "allow-assistant-save-token", "core:event:allow-listen", "core:event:allow-unlisten", "core:window:allow-destroy"]
+}

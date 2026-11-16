@@ -1,0 +1,33 @@
+html[data-appearance] body,
+html[data-appearance] :is(.visual,.terminal) {
+  color:var(--text);
+  background:var(--surface);
+}
+html[data-appearance] :is(main>header,.strip,footer,.assistant-pane,.preferences) {
+  color:var(--text);
+  background:var(--panel);
+  border-color:var(--edge);
+}
+html[data-appearance] :is(.code,.tools,.output,.chat-log article,nav i) {border-color:var(--edge)}
+html[data-appearance] :is(.studio,.drawing-hint,.strip small,footer,.assistant-body label) {color:var(--muted)}
+html[data-appearance] :is(.strip em,.chat-log strong) {color:var(--accent)}
+html[data-appearance] .brandmark {color:var(--surface);background:var(--accent)}
+html[data-appearance] :is(nav,.strip,.panel-buttons,.preferences,.assistant-body) button {
+  background:var(--raised);border-color:var(--edge);color:var(--text);
+}
+html[data-appearance] :is(nav,.strip,.panel-buttons,.preferences,.assistant-body) button:hover:not(:disabled) {border-color:var(--accent)}
+html[data-appearance] :is(nav,.strip,.panel-buttons,.preferences,.assistant-body) button[aria-pressed=true] {
+  background:var(--selection);border-color:var(--accent);color:var(--text);
+}
+html[data-appearance] :is(nav,.assistant-body,.preferences) button.execute {
+  color:var(--surface);background:var(--success);border-color:var(--success);
+}
+html[data-appearance] :is(.assistant-body,.preferences) :is(input,select,textarea) {
+  color:var(--text);background:var(--surface);border-color:var(--edge);
+}
+html[data-appearance] :is(.assistant-body,.preferences) :focus-visible,
+html[data-appearance] button:focus-visible {outline:2px solid var(--accent);outline-offset:2px}
+html[data-appearance] .chat-log pre {background:var(--surface);font:var(--code-size)/1.5 var(--code-font)}
+html[data-appearance] .assistant-body p[role=alert] {color:var(--red)}
+html[data-appearance] :is(.divider,.chat-divider):is(:hover,:focus-visible)::after {background:var(--accent)}
+html[data-appearance] footer b.on {background:var(--success)}

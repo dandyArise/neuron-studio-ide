@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-assistant-save-token"
+description = "Enables the assistant_save_token command without any pre-configured scope."
+commands.allow = ["assistant_save_token"]
+
+[[permission]]
+identifier = "deny-assistant-save-token"
+description = "Denies the assistant_save_token command without any pre-configured scope."
+commands.deny = ["assistant_save_token"]

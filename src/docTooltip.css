@@ -1,0 +1,29 @@
+.monaco-editor .monaco-hover,
+.monaco-editor .suggest-details {
+  border-radius: 7px;
+  box-shadow: 0 5px 18px #0005;
+}
+.monaco-editor .monaco-hover .markdown-hover .hover-contents,
+.monaco-editor .suggest-details .markdown-docs {
+  font-family: "Segoe UI", sans-serif;
+  font-size: var(--doc-font-size, 14px);
+  line-height: 1.5;
+  padding: 8px 12px;
+  overflow-wrap: anywhere;
+}
+.monaco-editor .monaco-hover .hover-contents h3,
+.monaco-editor .suggest-details .markdown-docs h3 {
+  font-size: 1.12em;
+  font-weight: 650;
+  margin: 0 0 .4em;
+}
+.monaco-editor .monaco-hover .hover-contents :is(pre, .code[data-code]),
+.monaco-editor .suggest-details .markdown-docs :is(pre, .code[data-code]) {
+  display: block;
+  border: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 6px 9px;
+  border-radius: 4px;
+  background: var(--vscode-textCodeBlock-background, var(--vscode-editor-background));
+}
