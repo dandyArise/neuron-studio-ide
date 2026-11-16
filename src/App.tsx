@@ -113,7 +113,7 @@ function App(){
     if(outputHost.current?.clientWidth)fitRef.current?.fit()
   },[appearance])
   function failure(e:unknown){status('Erreur');term.current?.writeln('\r\n\x1b[31m'+String(e)+'\x1b[0m')}
-  async function file(action:'new'|'open'|'save', proposedCode?:string){
+  async function file(action:'new'|'open'|'examples'|'save', proposedCode?:string){
     const save=action==='save'
     if(locked.current||active.current||!editor.current)return
     if(!save && editor.current.getValue()!==baseline.current && !confirm('Abandonner les modifications du document actuel ?'))return
@@ -122,7 +122,7 @@ function App(){
     try{
       if(save){const n=await invoke<string|null>('save_file',{content});if(n){baseline.current=content;setDirty(ed.getValue()!==content);setName(n)}}
       else {
-        const doc=await invoke<Doc|null>(action==='new'?'new_file':'open_file')
+        const doc=await invoke<Doc|null>(action==='new'?'new_file':'open_file',{examples:action==='examples'})
         if(doc){
           setCrash(null)
           toggleAuto(false);baseline.current=doc.content;ed.setValue(proposedCode??doc.content);setDirty(ed.getValue()!==doc.content);setName(doc.name)
@@ -169,7 +169,7 @@ function App(){
   return <main><header><div className="brand"><span className="brandmark">N</span>Neuron<span className="studio">Studio</span></div><nav>
 
     <button title="Nouveau fichier Python (Ctrl+N)" disabled={running||busy} onClick={()=>file('new')}>Nouveau</button>
-    <button disabled={running||busy} onClick={()=>file('open')}>Ouvrir</button><button disabled={running||busy} onClick={()=>file('save')}>Enregistrer</button><i/>
+    <button disabled={running||busy} onClick={()=>file('open')}>Ouvrir</button><button disabled={running||busy} onClick={()=>file('examples')}>Mes exemples</button><button disabled={running||busy} onClick={()=>file('save')}>Enregistrer</button><i/>
     <button disabled={busy} aria-pressed={auto} title="Relancer après 700 ms sans frappe" onClick={()=>toggleAuto(!autoEnabled.current)}>Run auto {auto?'✓':''}</button>
     <button disabled={!running&&!auto} onClick={stop}>■ Stop</button><button className="execute" disabled={running||busy} onClick={run}>▶ Exécuter</button></nav></header>
     <div className={'workspace'+(consoleOpen?'':' console-closed')}><section className="visual"><div className="strip"><strong>Rendu live</strong><small>{(drawing||frame)?(running?'● EN DIRECT':'DERNIÈRE IMAGE'):'EN ATTENTE'}</small></div>{frame?<Live frame={frame}/>:<DrawingView drawing={drawing}/>} 
@@ -177,7 +177,7 @@ function App(){
     </section><Divider/><Divider horizontal/>
     <div className="tools"><section className="code"><div className="strip"><strong><em>Py</em> {name}{dirty?' •':''}</strong><small>PYTHON</small></div><div ref={sourceHost} className="editor"/>
     {assistant && <Divider horizontal assistant/>}
-    {assistantStarted && <Assistant runCurrent={run} explain={explain} consume={()=>setExplain(null)} reportBusy={setAsking} attachment={attachment} removeAttachment={item=>setAttachment(current=>current===item?null:current)} config={config} settings={()=>setSection('llm')} visible={assistant} editorRef={editor} close={()=>setAssistant(false)} beforeEdit={()=>toggleAuto(false)} runDisabled={running||busy} runNew={code=>void file('new',code)}/>}</section>
+    {assistantStarted && <Assistant runCurrent={run} explain={explain} consume={()=>setExplain(null)} reportBusy={setAsking} attachment={attachment} removeAttachment={item=>setAttachment(current=>current===item?null:current)} config={config} visible={assistant} editorRef={editor} close={()=>setAssistant(false)} beforeEdit={()=>toggleAuto(false)} runDisabled={running||busy} runNew={code=>void file('new',code)}/>}</section>
     <section className="output"><div className="strip"><strong><em>›_</em> Console</strong><span>
       {crash&&<button disabled={asking||!!explain} onClick={()=>{startAssistant(true);setAssistant(true);setExplain(crash)}}>Expliquer l’erreur</button>}{' '}
       <button onClick={attachConsole}>Joindre à la question</button>{' '}<button type="button" title="Effacer la sortie et son historique" onClick={()=>{term.current?.write('\x1bc');setCrash(null)}}>Vider</button></span></div><div ref={outputHost} className="terminal"/></section></div></div>

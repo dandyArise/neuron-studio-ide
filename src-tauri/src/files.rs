@@ -35,9 +35,23 @@ fn python_name(path: &Path) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn open_file(doc: State<'_, Document>) -> Result<Option<Opened>, String> {
-    let Some(file) = rfd::AsyncFileDialog::new()
-        .add_filter("Python", &["py"])
+pub async fn open_file(doc: State<'_, Document>, examples: Option<bool>) -> Result<Option<Opened>, String> {
+    use winreg::{enums::HKEY_CURRENT_USER, RegKey};
+    const SETTINGS: &str = r"Software\Neuron Studio";
+    let personal = examples == Some(true);
+    let mut dialog = rfd::AsyncFileDialog::new().add_filter("Python", &["py"]);
+    if personal {
+        dialog = dialog.set_title("Mes exemples — choisir un script Python");
+        let saved = RegKey::predef(HKEY_CURRENT_USER).open_subkey(SETTINGS).ok()
+            .and_then(|key| key.get_value::<String, _>("ExamplesFolder").ok())
+            .map(PathBuf::from).filter(|path| path.is_dir());
+        let nearby = std::env::current_exe().ok()
+            .and_then(|exe| exe.parent().map(|dir| dir.join("examples")));
+        if let Some(folder) = saved.or(nearby).filter(|path| path.is_dir()) {
+            dialog = dialog.set_directory(folder);
+        }
+    }
+    let Some(file) = dialog
         .pick_file()
         .await
     else {
@@ -53,6 +67,11 @@ pub async fn open_file(doc: State<'_, Document>) -> Result<Option<Opened>, Strin
         return Err("Fichier supérieur à 8 Mio.".into());
     }
     let content = String::from_utf8(bytes).map_err(|_| "Le fichier doit être encodé en UTF-8.")?;
+    if personal {
+        if let (Some(parent), Ok((key, _))) = (path.parent(), RegKey::predef(HKEY_CURRENT_USER).create_subkey(SETTINGS)) {
+            let _ = key.set_value("ExamplesFolder", &parent.as_os_str());
+        }
+    }
     *doc.0.lock().unwrap() = Some(path.into());
     Ok(Some(Opened { name, content }))
 }

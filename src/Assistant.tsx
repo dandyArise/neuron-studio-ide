@@ -6,12 +6,12 @@ import {diffLines} from 'diff'
 import './assistant.css'
 
 import type {LlmConfig} from './Preferences'
-type Props = {config:LlmConfig,settings:()=>void,visible:boolean, editorRef:RefObject<editor.IStandaloneCodeEditor|null>, close:()=>void, beforeEdit:()=>void, runDisabled:boolean, runNew:(code:string)=>void}
+type Props = {config:LlmConfig,visible:boolean, editorRef:RefObject<editor.IStandaloneCodeEditor|null>, close:()=>void, beforeEdit:()=>void, runDisabled:boolean, runNew:(code:string)=>void}
 type Target = {version:number, range:Selection}
 type Turn = {question:string,context:string,answer:string,target:Target,correction?:string}
 type Attachment={text:string}
 export type Crash={source:string,diagnostic:string,version:number}
-export default function Assistant({runCurrent,explain,consume,reportBusy,attachment,removeAttachment,config,settings,visible,editorRef,close,beforeEdit,runDisabled,runNew}:Props & {runCurrent:()=>void,explain:Crash|null,consume:()=>void,reportBusy:(busy:boolean)=>void,attachment:Attachment|null,removeAttachment:(item:Attachment)=>void}){
+export default function Assistant({runCurrent,explain,consume,reportBusy,attachment,removeAttachment,config,visible,editorRef,close,beforeEdit,runDisabled,runNew}:Props & {runCurrent:()=>void,explain:Crash|null,consume:()=>void,reportBusy:(busy:boolean)=>void,attachment:Attachment|null,removeAttachment:(item:Attachment)=>void}){
   const {provider,scope,model,port}=config
   const [question,setQuestion]=useState(''),[error,setError]=useState('')
   const [threads,setThreads]=useState<Record<string,Turn[]>>({})
@@ -69,7 +69,7 @@ export default function Assistant({runCurrent,explain,consume,reportBusy,attachm
     if(applied&&wholeScript)runCurrent()
   }
   return <aside hidden={!visible} className="assistant-pane" aria-label="Assistant Python">
-    <div className="strip"><strong>Assistant · {provider==='lmstudio'?'LM Studio':'Codex'}</strong><span><button onClick={settings}>Réglages</button> <button onClick={close} aria-label="Fermer l’assistant">×</button></span></div>
+    <div className="strip assistant-heading"><div><strong>Assistant</strong><span className="provider-name">{provider==='lmstudio'?'LM Studio':'Codex'}</span></div><button onClick={close} aria-label="Fermer l’assistant">×</button></div>
     <div className="assistant-body">
       {(turns.length>0||sent)&&<div ref={log} className="chat-log" role="log" aria-label="Discussion">
         {turns.map((turn,index)=><article key={index}><strong>Vous</strong><p>{turn.question}</p><strong>{provider==='lmstudio'?'LM Studio':'Codex'}</strong>
@@ -78,9 +78,12 @@ export default function Assistant({runCurrent,explain,consume,reportBusy,attachm
             <button onClick={()=>insert(part,turn.target)}>{turn.target.range.isEmpty()?'Insérer le code':'Remplacer la sélection'}</button></div>:<p key={i}>{part.trim()}</p>)}{turn.correction&&<button className="execute" disabled={runDisabled} onClick={()=>review(turn)}>Appliquer la correction</button>}</article>)}
         {sent&&<article><strong>Vous</strong><p>{sent}</p></article>}
       </div>}
-      <label>Question<textarea disabled={waiting} rows={2} placeholder={turns.length?'Continuer la discussion…':'Explique cette fonction ou propose une correction…'} value={question} onChange={e=>setQuestion(e.target.value)} onKeyDown={e=>{if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();void ask()}}}/></label>
-      {attachment&&<div><details><summary>Sortie console jointe</summary><pre style={{maxHeight:150,overflow:'auto'}}>{attachment.text}</pre></details><button onClick={()=>removeAttachment(attachment)}>Retirer la sortie</button></div>}
-      <button className="execute" disabled={waiting||!question.trim()} onClick={()=>void ask()}>{waiting?'Réponse en cours…':'Demander'}</button>
+      <div className="message-box">
+        {attachment&&<div className="console-chip"><details><summary>Sortie console jointe</summary><pre>{attachment.text}</pre></details><button aria-label="Retirer la sortie" title="Retirer la sortie" onClick={()=>removeAttachment(attachment)}>×</button></div>}
+        <div className="message-row"><textarea aria-label="Question à l’assistant" disabled={waiting} rows={2} placeholder={turns.length?'Continuer la discussion…':'Poser une question sur le code…'} value={question} onChange={e=>setQuestion(e.target.value)} onKeyDown={e=>{if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();void ask()}}}/>
+        <button className="send-message" aria-label="Envoyer la question" title="Envoyer (Ctrl+Entrée)" disabled={waiting||!question.trim()} onClick={()=>void ask()}>↑</button></div>
+      </div>
+      {waiting&&<span role="status">Réponse en cours…</span>}
       {error&&<p role="alert">{error}</p>}
       {turns.length>0 && <button disabled={waiting} onClick={()=>{setThreads(prev=>({...prev,[provider]:[]}));setError('');setQuestion('')}}>Nouvelle discussion</button>}
     </div>

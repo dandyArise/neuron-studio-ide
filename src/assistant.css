@@ -17,3 +17,15 @@
 .diff-code .added{background:#183e29;color:#b6f2c7}
 .diff-code .removed{background:#4c2129;color:#ffd0d5}
 .diff-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.assistant-heading>div,.message-row,.console-chip{display:flex;align-items:center;gap:8px}
+.assistant-pane .assistant-heading strong{font:600 14px "Segoe UI",sans-serif}
+.provider-name{border-left:1px solid var(--edge);padding-left:9px;color:var(--muted);font:12px "Segoe UI",sans-serif}
+html[data-appearance] .assistant-heading>button,html[data-appearance] .console-chip button{background:transparent;border:0;color:var(--muted);padding:3px 7px;font-size:16px}
+.message-box{border:1px solid var(--edge);border-radius:10px;background:var(--surface);padding:7px}
+.message-box:focus-within{border-color:var(--accent)}
+.message-row{align-items:flex-end}
+html[data-appearance] .message-row textarea{background:transparent;border:0;outline:0;flex:1;min-width:0;resize:none;padding:6px;line-height:1.5}
+.message-row textarea::placeholder{color:var(--muted)}
+html[data-appearance] .message-row .send-message{border:0;border-radius:8px;width:32px;height:32px;padding:0;font-size:21px;background:var(--accent);color:var(--surface)}
+.console-chip{width:fit-content;max-width:100%;align-items:flex-start;background:var(--raised);color:var(--text);border-radius:6px;margin:2px 0 5px;padding:1px 2px 1px 8px;font-size:12px}
+.console-chip details{min-width:0;padding:4px 0}.console-chip pre{max-height:120px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
