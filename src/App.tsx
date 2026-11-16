@@ -33,6 +33,27 @@ function App(){
   const sourceHost=useRef<HTMLDivElement>(null),outputHost=useRef<HTMLDivElement>(null)
   const editor=useRef<monaco.editor.IStandaloneCodeEditor|null>(null),term=useRef<Terminal|null>(null)
   const baseline=useRef(demo),active=useRef(false),locked=useRef(false)
+  const exitDialog=useRef<HTMLDialogElement>(null)
+  const [exitError,setExitError]=useState('')
+  const exitPending=useRef(false)
+  const [closing,setClosing]=useState(false)
+  async function finishClose(save:boolean){
+    if(exitPending.current||locked.current)return
+    exitPending.current=true;setClosing(true);setExitError('')
+    try{
+      if(save){
+        const doc=editor.current
+        if(!doc)return
+        const content=doc.getValue()
+        const saved=await invoke<string|null>('save_file',{content})
+        if(!saved)return
+        baseline.current=content;setName(saved);setDirty(doc.getValue()!==content)
+        if(doc.getValue()!==content)return
+      }
+      await getCurrentWindow().destroy()
+    }catch(e){setExitError(String(e))}
+    finally{exitPending.current=false;setClosing(false)}
+  }
   const [auto,setAuto]=useState(false)
   const [fileReview,setFileReview]=useState<{
     action:'new'|'open'|'examples', proposed?:string, source:string, before:string, after:string, apply?:()=>void
@@ -84,7 +105,10 @@ function App(){
     }
     window.addEventListener('keydown',keys,true)
     const close=isTauri()?getCurrentWindow().onCloseRequested(async e=>{
-      if(ed.getValue()!==baseline.current){e.preventDefault();if(window.confirm('Fermer et abandonner les modifications ?'))await getCurrentWindow().destroy()}
+      if(ed.getValue()!==baseline.current||locked.current||exitPending.current){
+        e.preventDefault()
+        if(!exitDialog.current?.open){setExitError('');exitDialog.current?.showModal()}
+      }
     }):null
     return ()=>{clearTimeout(timer.current);completion.dispose();void close?.then(fn=>fn());observer.disconnect();window.removeEventListener('keydown',keys,true);ed.dispose();t.dispose()}
   },[])
@@ -227,6 +251,14 @@ function App(){
       <button aria-pressed={consoleOpen} onClick={()=>setConsoleOpen(!consoleOpen)}>Console</button>
       <button title="Préférences (Ctrl+,)" onClick={()=>setSection('appearance')}>Préférences</button>
       <span><b className={running?'on':''}/> {state}</span></div><span>Ln / Col {position}　 ·　 UTF-8　 ·　 Python</span></footer>
+    <dialog ref={exitDialog} className="exit-dialog" aria-labelledby="exit-title" onCancel={e=>{if(closing)e.preventDefault()}}>
+      <h2 id="exit-title">Fermer Neuron Studio ?</h2>
+      <p>Enregistrer les modifications de <strong>{name}</strong> avant de quitter ?</p>
+      {exitError&&<p role="alert">{exitError}</p>}
+      <div><button autoFocus disabled={closing} onClick={()=>exitDialog.current?.close()}>Continuer à éditer</button>
+        <button disabled={busy||closing} onClick={()=>void finishClose(false)}>Fermer sans enregistrer</button>
+        <button className="execute" disabled={busy||closing} onClick={()=>void finishClose(true)}>Enregistrer et fermer</button></div>
+    </dialog>
     {section&&<Preferences initial={section} appearance={appearance} change={setAppearance} config={config} save={setConfig} close={()=>setSection(null)}/>}</main>
 }
 createRoot(document.getElementById('root')!).render(<App/>)

@@ -71,3 +71,8 @@ button[aria-pressed=true]{background:#36442f;color:#cdeab9;border-color:#728763}
 .review-lines .minus{background:#422326;color:#ffc5c9}
 .hunk-gutter{position:absolute;top:0;bottom:0;width:0;z-index:3}
 .hunk-gutter>button{position:absolute;left:-12px;width:24px;height:20px;padding:0;line-height:16px;background:var(--panel);color:var(--accent);border:1px solid var(--edge)}
+.exit-dialog{background:var(--panel);color:var(--text);border:1px solid var(--edge);border-radius:12px;padding:22px;max-width:min(560px,90vw)}
+.exit-dialog::backdrop{background:#0008}
+.exit-dialog h2{margin:0;font-size:19px}
+.exit-dialog p{margin:12px 0 22px;overflow-wrap:anywhere}
+.exit-dialog>div{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px}
